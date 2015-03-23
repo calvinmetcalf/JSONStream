@@ -1,7 +1,8 @@
 #! /usr/bin/env node
 
 var Parser = require('jsonparse')
-  , through = require('through2').obj
+  , Transform = require('readable-stream').Transform
+  , inherits = require('inherits')
 
 /*
 
@@ -12,15 +13,21 @@ var Parser = require('jsonparse')
 
 */
 
-exports.parse = function (path, map) {
+exports.parse = Parse;
 
-  var parser = new Parser()
-  var stream = through(function (chunk, encoding, next) {
-    if('string' === typeof encoding)
-      chunk = new Buffer(chunk, encoding)
-    parser.write(chunk)
-    next()
+inherits(Parse, Transform)
+
+function Parse(path, map) {
+  if (!(this instanceof Parse))
+    return new Parse(path, map)
+
+  Transform.call(this, {
+    objectMode: true
   })
+
+  var stream = this;
+  this.root = null;
+  var parser = this.parser = new Parser()
 
   if('string' === typeof path)
     path = path.split('.').map(function (e) {
@@ -105,7 +112,13 @@ exports.parse = function (path, map) {
   }
 
 
-  return stream
+}
+
+Parse.prototype._transform = function (chunk, encoding, next) {
+  if('string' === typeof encoding)
+    chunk = new Buffer(chunk, encoding)
+  this.parser.write(chunk)
+  next()
 }
 
 function check (x, y) {
@@ -120,76 +133,99 @@ function check (x, y) {
   return false
 }
 
-exports.stringify = function (op, sep, cl, indent) {
-  indent = indent || 0
+exports.stringify = Stringify;
+
+inherits(Stringify, Transform)
+
+function Stringify(op, sep, cl, indent) {
+  if (!(this instanceof Stringify))
+    return new Stringify(op, sep, cl, indent)
+
+  Transform.call(this, {
+    objectMode: true
+  })
+
+  this.indent = indent || 0
   if (op === false){
-    op = ''
-    sep = '\n'
-    cl = ''
+    this.op = ''
+    this.sep = '\n'
+    this.cl = ''
   } else if (op == null) {
 
-    op = '[\n'
-    sep = '\n,\n'
-    cl = '\n]\n'
+    this.op = '[\n'
+    this.sep = '\n,\n'
+    this.cl = '\n]\n'
 
   }
 
   //else, what ever you like
 
-  var stream
-    , first = true
-    , anyData = false
-  stream = through(function (data, _, next) {
-    anyData = true
-    var json = JSON.stringify(data, null, indent)
-    if(first) { first = false ; stream.push(op + json)}
-    else stream.push(sep + json)
-    next()
-  },
-  function (done) {
-    if(!anyData)
-      stream.push(op)
-    stream.push(cl)
-    done()
-  })
-
-  return stream
+  this.first = true
+  this.anyData = false
 }
 
-exports.stringifyObject = function (op, sep, cl, indent) {
-  indent = indent || 0
+Stringify.prototype._transform = function (data, _, next) {
+  this.anyData = true
+  var json = JSON.stringify(data, null, this.indent)
+  if(this.first) {
+    this.first = false;
+    this.push(this.op + json)
+  }
+  else this.push(this.sep + json)
+  next()
+}
+
+Stringify.prototype._flush = function (done) {
+  if(!this.anyData)
+    this.push(this.op)
+  this.push(this.cl)
+  done()
+}
+
+exports.stringifyObject = StringifyObject;
+
+inherits(StringifyObject, Transform)
+
+function StringifyObject (op, sep, cl, indent) {
+  if (!(this instanceof StringifyObject))
+    return new StringifyObject(op, sep, cl, indent)
+
+  Transform.call(this, {
+    objectMode: true
+  })
+
+  this.indent = indent || 0
   if (op === false){
-    op = ''
-    sep = '\n'
-    cl = ''
+    this.op = ''
+    this.sep = '\n'
+    this.cl = ''
   } else if (op == null) {
 
-    op = '{\n'
-    sep = '\n,\n'
-    cl = '\n}\n'
+    this.op = '{\n'
+    this.sep = '\n,\n'
+    this.cl = '\n}\n'
 
   }
 
   //else, what ever you like
 
-  var first = true
-    , anyData = false
-  stream = through(function (data, _, next) {
-    anyData = true
-    var json = JSON.stringify(data[0]) + ':' + JSON.stringify(data[1], null, indent)
-    if(first) { first = false ; this.push(op + json)}
-    else this.push(sep + json)
-    next()
-  },
-  function (done) {
-    if(!anyData) this.push(op)
-    this.push(cl)
-
-    done()
-  })
-
-  return stream
+  this.first = true
+  this.anyData = false
 }
+StringifyObject.prototype._transform = function (data, _, next) {
+  this.anyData = true
+  var json = JSON.stringify(data[0]) + ':' + JSON.stringify(data[1], null, this.indent)
+  if(this.first) { this.first = false ; this.push(this.op + json)}
+  else this.push(this.sep + json)
+  next()
+}
+StringifyObject.prototype._flush = function (done) {
+  if(!this.anyData) this.push(this.op)
+  this.push(this.cl)
+
+  done()
+}
+
 
 if(!module.parent && process.title !== 'browser') {
   process.stdin
