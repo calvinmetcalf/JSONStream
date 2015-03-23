@@ -17,7 +17,6 @@
   ],
   "dependencies": {
     "jsonparse": "~1.0.0",
-    "through": ">=2.2.7 <3",
     "through2": "^0.6.3"
   },
   "devDependencies": {
