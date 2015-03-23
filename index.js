@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 var Parser = require('jsonparse')
-  , through = require('through')
+  , through = require('through2').obj
 
 /*
 
@@ -15,15 +15,11 @@ var Parser = require('jsonparse')
 exports.parse = function (path, map) {
 
   var parser = new Parser()
-  var stream = through(function (chunk) {
-    if('string' === typeof chunk)
-      chunk = new Buffer(chunk)
+  var stream = through(function (chunk, encoding, next) {
+    if('string' === typeof encoding)
+      chunk = new Buffer(chunk, encoding)
     parser.write(chunk)
-  },
-  function (data) {
-    if(data)
-      stream.write(data)
-    stream.queue(null)
+    next()
   })
 
   if('string' === typeof path)
@@ -83,7 +79,7 @@ exports.parse = function (path, map) {
     var data = this.value[this.key]
     if(null != data)
       if(null != (data = map ? map(data, actualPath) : data))
-        stream.queue(data)
+        stream.push(data)
     delete this.value[this.key]
     for(var k in this.stack)
       this.stack[k].value = null
@@ -95,7 +91,7 @@ exports.parse = function (path, map) {
     if (this.stack.length === 0) {
       if (stream.root) {
         if(!path)
-          stream.queue(stream.root)
+          stream.push(stream.root)
         count = 0;
         stream.root = null;
       }
@@ -143,17 +139,18 @@ exports.stringify = function (op, sep, cl, indent) {
   var stream
     , first = true
     , anyData = false
-  stream = through(function (data) {
+  stream = through(function (data, _, next) {
     anyData = true
     var json = JSON.stringify(data, null, indent)
-    if(first) { first = false ; stream.queue(op + json)}
-    else stream.queue(sep + json)
+    if(first) { first = false ; stream.push(op + json)}
+    else stream.push(sep + json)
+    next()
   },
-  function (data) {
+  function (done) {
     if(!anyData)
-      stream.queue(op)
-    stream.queue(cl)
-    stream.queue(null)
+      stream.push(op)
+    stream.push(cl)
+    done()
   })
 
   return stream
@@ -177,17 +174,18 @@ exports.stringifyObject = function (op, sep, cl, indent) {
 
   var first = true
     , anyData = false
-  stream = through(function (data) {
+  stream = through(function (data, _, next) {
     anyData = true
     var json = JSON.stringify(data[0]) + ':' + JSON.stringify(data[1], null, indent)
-    if(first) { first = false ; this.queue(op + json)}
-    else this.queue(sep + json)
+    if(first) { first = false ; this.push(op + json)}
+    else this.push(sep + json)
+    next()
   },
-  function (data) {
-    if(!anyData) this.queue(op)
-    this.queue(cl)
+  function (done) {
+    if(!anyData) this.push(op)
+    this.push(cl)
 
-    this.queue(null)
+    done()
   })
 
   return stream
