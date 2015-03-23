@@ -11,7 +11,7 @@ var server = net.createServer(function(client) {
         console.log('close')
         console.error('PASSED');
         server.close();
-    });
+    }).on('data', function (){})
     client.pipe(parser);
     var n = 4
     client.on('data', function () {

@@ -12,11 +12,13 @@ var server = net.createServer(function(client) {
     var parser = JSONStream.parse();
     parser.on('error', function(err) {
         console.log(err);
+        console.error('PASSED')
         server.close();
     });
 
     parser.on('end', function() {
         console.log('END');
+        console.log('FAILED')
         server.close();
     });
     client.pipe(parser);
