@@ -17,8 +17,8 @@
   ],
   "dependencies": {
     "inherits": "^2.0.1",
-    "jsonparse": "~1.0.0",
-    "readable-stream": "^1.0.33"
+    "io-stream": "^2.0.2",
+    "jsonparse": "~1.0.0"
   },
   "devDependencies": {
     "it-is": "~1",
