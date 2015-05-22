@@ -156,6 +156,10 @@ function Stringify(op, sep, cl, indent) {
     this.sep = '\n,\n'
     this.cl = '\n]\n'
 
+  } else {
+    this.op = op
+    this.sep = sep
+    this.cl = cl
   }
 
   //else, what ever you like
@@ -169,9 +173,11 @@ Stringify.prototype._transform = function (data, _, next) {
   var json = JSON.stringify(data, null, this.indent)
   if(this.first) {
     this.first = false;
-    this.push(this.op + json)
+    this.push(this.op)
   }
-  else this.push(this.sep + json)
+  else this.push(this.sep)
+
+  this.push(json)
   next()
 }
 
@@ -207,16 +213,15 @@ function StringifyObject (op, sep, cl, indent) {
 
   }
 
-  //else, what ever you like
-
   this.first = true
   this.anyData = false
 }
 StringifyObject.prototype._transform = function (data, _, next) {
   this.anyData = true
   var json = JSON.stringify(data[0]) + ':' + JSON.stringify(data[1], null, this.indent)
-  if(this.first) { this.first = false ; this.push(this.op + json)}
-  else this.push(this.sep + json)
+  if(this.first) { this.first = false ; this.push(this.op)}
+  else this.push(this.sep)
+  this.push(json)
   next()
 }
 StringifyObject.prototype._flush = function (done) {

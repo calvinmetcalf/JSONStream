@@ -19,7 +19,7 @@ var fs = require ('fs')
   }
 
 var expected =  []
-  , stringify = JSONStream.stringify()
+  , stringify = JSONStream.stringify('{"features": [', ',', ']}')
   , es = require('event-stream')
   , stringified = ''
   , called = 0
@@ -32,10 +32,10 @@ while (count --)
   es.connect(
     es.readArray(expected),
     stringify,
-    //JSONStream.parse([/./]),
     es.writeArray(function (err, lines) {
-
-      it(JSON.parse(lines.join(''))).deepEqual(expected)
+      it(JSON.parse(lines.join(''))).deepEqual({
+        features: expected
+      })
       console.error('PASSED')
     })
   )
