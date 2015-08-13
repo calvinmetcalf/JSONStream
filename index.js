@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 var Parser = require('jsonparse')
-  , Transform = require('io-stream').Transform
+  , Transform = require('readable-stream').Transform
   , inherits = require('inherits')
 
 /*

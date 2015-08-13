@@ -7,22 +7,23 @@
 var r = Math.random()
   , Parser = require('jsonparse')
   , p = new Parser()
-  , assert = require('assert')  
   , times = 20
-while (times --) {
+  , test = require('tape')
+test('parse numbers', function (t) {
+  while (times --) {
 
-  assert.equal(JSON.parse(JSON.stringify(r)), r, 'core JSON')
+    t.equal(JSON.parse(JSON.stringify(r)), r, 'core JSON')
 
-  p.onValue = function (v) {
-    console.error('parsed', v)
-    assert.equal(
-      String(v).slice(0,12),
-      String(r).slice(0,12)
-    )
+    p.onValue = function (v) {
+      t.equal(
+        String(v).slice(0,12),
+        String(r).slice(0,12)
+      )
+    }
+    p.write (new Buffer(JSON.stringify([r])))
+
+
+
   }
-  console.error('correct', r)
-  p.write (new Buffer(JSON.stringify([r])))
-
-
-
-}
+  t.end();
+});
